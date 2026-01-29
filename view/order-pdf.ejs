@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Order <%= order.orderId %></title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+
+    .container {
+      width: 90%;
+      margin: 20px auto;
+      background-color: #fff;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 5px;
+    }
+
+    h2 {
+      color: #34495e;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 5px;
+      margin-top: 30px;
+    }
+
+    p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+
+    .order-info {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    .order-info div {
+      width: 48%;
+      margin-bottom: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #3498db;
+      color: white;
+      font-weight: bold;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    .footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 12px;
+      color: #7f8c8d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 Movie Ticket Receipt</h1>
+
+    <div class="order-info">
+      <div><strong>Order ID:</strong> <%= order.orderId %></div>
+      <div><strong>Total Amount:</strong> ₹<%= order.totalAmount %></div>
+      <div><strong>Payment Status:</strong> <%= order.paymentStatus %></div>
+      <div><strong>Order Status:</strong> <%= order.orderStatus %></div>
+      <div><strong>Order Date:</strong> <%= new Date(order.createdAt).toLocaleString() %></div>
+    </div>
+
+    <h2>🎟️ Tickets</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Movie Name</th>
+          <th>Show Date</th>
+          <th>Show Time</th>
+          <th>Category</th>
+          <th>Seats</th>
+          <th>Price</th>
+          <th>Total Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% order.tickets.forEach(ticket => { %>
+          <tr>
+            <td><%= ticket.ticket.MovieName %></td>
+            <td><%= new Date(ticket.ticket.showDate).toLocaleDateString() %></td>
+            <td><%= ticket.ticket.showTime %></td>
+            <td><%= ticket.ticket.ticketCategory %></td>
+            <td><%= ticket.ticket.selectedSeats.join(", ") %></td>
+            <td>₹<%= ticket.ticket.pricePerTicket %></td>
+            <td>₹<%= ticket.ticket.totalPrice %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <div class="footer">
+      Thank you for booking with us! 🎉<br>
+      Visit again for more movies.
+    </div>
+  </div>
+</body>
+</html>
