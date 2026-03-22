@@ -1,53 +1,31 @@
+// models/User.js
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-    firstName: { type: String, },
+    firstName: { type: String,},
     lastName: { type: String, },
     fullName: { type: String },
-    email: { type: String, },
-    phoneNumber: { type: String, unique: true },
-    password: { type: String },
-    // inside your User schema
+    email: { type: String,  },
+    phoneNumber: { type: String, },
+    password: { type: String, },
+    address: { type: String, default: "" },
+    
+    // Profile Image
     profileImage: { type: String, default: null },
-    profileImageId: { type: String, default: null }, // cloudinary public_id
+    profileImageId: { type: String, default: null },
 
-
-    // REFERRAL SYSTEM
-    referralCode: { type: String, unique: true },   // Auto generated for each user
-    usedReferralCode: { type: String },             // Which referral code user entered
-    referredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Who referred user
-    referralCount: { type: Number, default: 0 },     // How many users he referred
-    notifications: [
-  {
-    type: { 
-      type: String, 
-      enum: ["order", "general"], 
-    },
-
-    // ✅ NEW FIELDS
-    MovieName: { type: String },
-    ticketImage: { type: String },
-
-    message: { type: String },
-    orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
-    date: { type: Date, default: Date.now },
-    read: { type: Boolean, default: false }
-  }
-],
-
-
- wallet: {
-      balance: { type: Number, default: 0 }, 
-      history: [
-        {
-          orderId: { type: mongoose.Schema.Types.ObjectId, ref: "CreateMovieTicket" },
-          amount: { type: Number, required: true },
-          ticketDetails: { type: Object },
-          addedAt: { type: Date, default: Date.now }
-        }
-      ]
-    },
-
+    // Account Status
+    isActive: { type: Boolean, default: true },
+    lastLogin: { type: Date, default: null },
+    
 }, { timestamps: true });
+
+// Generate full name before saving
+userSchema.pre('save', function(next) {
+    if (this.firstName && this.lastName) {
+        this.fullName = `${this.firstName} ${this.lastName}`;
+    }
+    next();
+});
 
 export default mongoose.model("User", userSchema);

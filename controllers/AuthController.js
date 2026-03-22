@@ -1,6 +1,5 @@
 import User from "../models/AuthModel.js";
 import bcrypt from "bcryptjs";
-import { generateToken, verifyToken } from "../utils/jwt.js";
 import { uploadBufferToCloudinary, deleteFromCloudinary } from "../config/cloudinary.js";
 import CreateMovieTicket from "../models/CreateMovieTicket.js";
 import { Cart } from "../models/Cart.js";
@@ -17,6 +16,8 @@ import Redemption from "../models/Redemption.js";
 import Admin from "../models/Admin.js";
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
+import jwt from "jsonwebtoken";
+
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -29,69 +30,164 @@ const __dirname = path.dirname(__filename);
 
 
 
+const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key_here";
+const JWT_EXPIRE = "7d";
+
+// Generate JWT Token
+const generateToken = (userId) => {
+    return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: JWT_EXPIRE });
+};
+
+// Register Controller
 export const register = async (req, res) => {
-  try {
-    const { firstName, lastName, email, phoneNumber, password, confirmPassword, referralCode } = req.body;
+    try {
+        const { firstName, lastName, email, phoneNumber, password, confirmPassword, address } = req.body;
 
-    if (!firstName || !lastName || !email || !phoneNumber || !password || !confirmPassword)
-      return res.status(400).json({ message: "All fields required" });
+        // Check required fields
+        if (!firstName || !lastName || !email || !phoneNumber || !password || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "All required fields must be filled"
+            });
+        }
 
-    if (password !== confirmPassword)
-      return res.status(400).json({ message: "Passwords do not match" });
+        // Check if passwords match
+        if (password !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Passwords do not match"
+            });
+        }
 
-    const exists = await User.findOne({ phoneNumber });
-    if (exists)
-      return res.status(400).json({ message: "Phone number already registered" });
+        // Check if email already exists
+        const existingEmail = await User.findOne({ email: email.toLowerCase() });
+        if (existingEmail) {
+            return res.status(400).json({
+                success: false,
+                message: "Email already registered"
+            });
+        }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+        // Check if phone number already exists
+        const existingPhone = await User.findOne({ phoneNumber });
+        if (existingPhone) {
+            return res.status(400).json({
+                success: false,
+                message: "Phone number already registered"
+            });
+        }
 
-    // ---------------------------------------
-    // REFERRAL SYSTEM PROCESS
-    // ---------------------------------------
-    let referredBy = null;
+        // Create new user
+        const newUser = new User({
+            firstName,
+            lastName,
+            email: email.toLowerCase(),
+            phoneNumber,
+            password: password,
+            address: address || ""
+        });
 
-    if (referralCode) {
-      const refUser = await User.findOne({ referralCode });
+        await newUser.save();
 
-      if (!refUser)
-        return res.status(400).json({ message: "Invalid referral code" });
+        // Generate token
+        const token = generateToken(newUser._id);
+
+        return res.status(201).json({
+            success: true,
+            message: "Registration successful! Welcome to PrintShoppy!",
+            token,
+            user: {
+                id: newUser._id,
+                firstName: newUser.firstName,
+                lastName: newUser.lastName,
+                fullName: newUser.fullName,
+                email: newUser.email,
+                phoneNumber: newUser.phoneNumber,
+                address: newUser.address,
+                createdAt: newUser.createdAt
+            }
+        });
+
+    } catch (error) {
+        console.error("Registration error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error during registration",
+            error: error.message
+        });
     }
+};
 
+// Login Controller
+export const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
 
+        // Check required fields
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and password are required"
+            });
+        }
 
-    // GENERATE REFERRAL CODE FOR NEW USER
-    const myReferralCode = firstName.toLowerCase() + "-" + Math.floor(10000 + Math.random() * 90000);
+        // Find user by email
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
+        }
 
-    const user = await User.create({
-      firstName,
-      lastName,
-      fullName: `${firstName} ${lastName}`,
-      email,
-      phoneNumber,
-      password: hashedPassword,
-      referralCode: myReferralCode,
-      usedReferralCode: referralCode || null,
-      referredBy: referredBy || null
-    });
+        // Check if account is active
+        if (!user.isActive) {
+            return res.status(403).json({
+                success: false,
+                message: "Your account has been deactivated. Please contact support."
+            });
+        }
 
-    const otp = "1234";
+        // Check password
+        if (user.password !== password) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
+        }
 
-    const token = generateToken(
-      { id: user._id, phoneNumber, otp, type: "register" },
-      "10m"
-    );
+        // Update last login time
+        user.lastLogin = new Date();
+        await user.save();
 
-    res.json({
-      success: true,
-      message: "Registration successful. OTP sent!",
-      otp,
-      token,
-      user
-    });
+        // Generate token
+        const token = generateToken(user._id);
 
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+        return res.status(200).json({
+            success: true,
+            message: "Login successful!",
+            token,
+            user: {
+                id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                fullName: user.fullName,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                address: user.address,
+                profileImage: user.profileImage,
+                lastLogin: user.lastLogin
+            }
+        });
+
+    } catch (error) {
+        console.error("Login error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error during login",
+            error: error.message
+        });
+    }
 };
 
 
@@ -141,37 +237,7 @@ export const verifyOtp = async (req, res) => {
 };
 
 
-export const login = async (req, res) => {
-  try {
-    const { phoneNumber, password } = req.body;
 
-    const user = await User.findOne({ phoneNumber });
-    if (!user)
-      return res.status(400).json({ message: "User not found" });
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match)
-      return res.status(400).json({ message: "Invalid password" });
-
-    const otp = "1234";
-
-    const otpToken = generateToken(
-      { id: user._id, phoneNumber, otp, type: "login" },
-      "10m"
-    );
-
-    res.json({
-      success: true,
-      message: "Login successful. OTP sent!",
-      otp,
-      token: otpToken,
-      user
-    });
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
 
 export const forgotPassword = async (req, res) => {
   try {
@@ -1332,4 +1398,51 @@ export const confirmDeleteAccount = async (req, res) => {
       message: 'Your account has been successfully deleted.',
     });
   }
+};
+
+
+
+// controllers/authController.js (Add this new function)
+
+// Get User by ID
+export const getUserById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Find user by ID, exclude password field
+        const user = await User.findById(id).select("-password");
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+        
+        return res.status(200).json({
+            success: true,
+            user: {
+                id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                fullName: user.fullName,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                address: user.address,
+                profileImage: user.profileImage,
+                isActive: user.isActive,
+                lastLogin: user.lastLogin,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
+            }
+        });
+        
+    } catch (error) {
+        console.error("Get user by ID error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error while fetching user",
+            error: error.message
+        });
+    }
 };

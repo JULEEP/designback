@@ -21,7 +21,8 @@ import {
   createRedemptionRequest,
   deleteUserAccount,
   deleteAccount,
-  confirmDeleteAccount
+  confirmDeleteAccount,
+  getUserById
 } from "../controllers/AuthController.js";
 
 import { uploadProfileImage } from "../config/uploadUtils.js";
@@ -36,6 +37,7 @@ router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.get('/mypostedticket/:userId', getMyPostedTickets);
 router.get('/myprofile/:userId', getUserProfile);
+router.get("/user/:id", getUserById); // New route
 
 
 router.post("/addtocart", addToCart);           
