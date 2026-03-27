@@ -241,56 +241,108 @@ export const verifyOtp = async (req, res) => {
 
 export const forgotPassword = async (req, res) => {
   try {
-    const { phoneNumber } = req.body;
+    const { mobile, phoneNumber } = req.body;
+    
+    // Accept both 'mobile' and 'phoneNumber' for flexibility
+    const userPhone = mobile || phoneNumber;
+    
+    if (!userPhone) {
+      return res.status(400).json({ 
+        message: "Phone number is required" 
+      });
+    }
 
-    const user = await User.findOne({ phoneNumber });
-    if (!user)
-      return res.status(400).json({ message: "Phone number not registered" });
+    // Find user by phoneNumber
+    const user = await User.findOne({ phoneNumber: userPhone });
+    
+    if (!user) {
+      return res.status(404).json({ 
+        message: "Phone number not registered" 
+      });
+    }
 
-    const otp = "1234";
-
+    // Generate 4-digit OTP
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    
+    // Store OTP in database or generate a token
     const otpToken = generateToken(
-      { phoneNumber, otp, type: "forgot" },
+      { 
+        phoneNumber: user.phoneNumber, 
+        otp, 
+        userId: user._id,
+        type: "forgot" 
+      },
       "10m"
     );
 
+    // In production, you would send OTP via SMS here
+    console.log(`OTP for ${user.phoneNumber}: ${otp}`);
+    
+    // Always return OTP in response for testing (remove in production)
     res.json({
       success: true,
       message: "OTP sent for password reset",
-      token: otpToken
+      token: otpToken,
+      otp: otp // Return OTP for demo purposes
     });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Forgot password error:", err);
+    res.status(500).json({ 
+      message: "Server error. Please try again later.",
+      error: err.message 
+    });
   }
 };
 
-
 export const resetPassword = async (req, res) => {
   try {
-    const { token, newPassword, confirmNewPassword } = req.body;
+    const { mobile, newPassword, confirmNewPassword } = req.body;
 
-    if (newPassword !== confirmNewPassword)
-      return res.status(400).json({ message: "Passwords do not match" });
+    // Check if mobile is provided
+    if (!mobile) {
+      return res.status(400).json({ 
+        message: "Mobile number is required" 
+      });
+    }
 
-    const decoded = verifyToken(token);
+    // Check if passwords match
+    if (newPassword !== confirmNewPassword) {
+      return res.status(400).json({ 
+        message: "Passwords do not match" 
+      });
+    }
 
+    // Validate password length
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ 
+        message: "Password must be at least 6 characters long" 
+      });
+    }
 
-
-    const hashed = await bcrypt.hash(newPassword, 10);
-
-    await User.findOneAndUpdate(
-      { phoneNumber: decoded.phoneNumber },
-      { password: hashed }
+    // Update password without hashing
+    const updatedUser = await User.findOneAndUpdate(
+      { phoneNumber: mobile },
+      { password: newPassword }, // Store password as plain text
+      { new: true }
     );
+
+    if (!updatedUser) {
+      return res.status(404).json({ 
+        message: "User not found" 
+      });
+    }
 
     res.json({
       success: true,
-      message: "Password reset successful"
+      message: "Password reset successfully"
     });
 
   } catch (err) {
-    res.status(500).json({ message: "Invalid or expired token" });
+    console.error("Reset password error:", err);
+    res.status(500).json({ 
+      message: "Server error. Please try again later." 
+    });
   }
 };
 
