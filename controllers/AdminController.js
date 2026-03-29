@@ -1708,79 +1708,119 @@ export const deleteAdminNotification = async (req, res) => {
 
 
 
-export const uploadBillBook = async (req, res) => {
+// Create Bill Book
+export const createBillBook = async (req, res) => {
   try {
-    console.log("=== UPLOAD REQUEST START ===");
-    console.log("Request body:", req.body);
-    console.log("Request file:", req.file);
-    console.log("File fieldname:", req.file?.fieldname);
-    console.log("File mimetype:", req.file?.mimetype);
+    console.log('Request Body:', req.body);
+    console.log('Request Files:', req.files);
 
-    if (!req.file) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "No file received" 
+    const {
+      companyName,
+      companyAddress,
+      companyEmail,
+      companyPhone,
+      customerName,
+      customerAddress,
+      customerEmail,
+      customerPhone,
+      textStyles,
+      logoSettings,
+      design,
+      useTemplate
+    } = req.body;
+
+    // Validate required fields
+    if (!companyName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Company name is required'
       });
     }
 
-    const { name, textElements, isEdited } = req.body;
-    
-    console.log("isEdited value:", isEdited);
-    console.log("textElements:", textElements);
+    // Get file paths from uploaded files
+    let templateImagePath = null;
+    let logoPath = null;
+    let previewImagePath = null;
 
-    // Parse isEdited properly
-    const isEditedBool = isEdited === 'true' || isEdited === true || isEdited === '1';
-    
-    console.log("isEdited parsed:", isEditedBool);
-
-    // Parse textElements if they exist
-    let parsedTextElements = [];
-    if (textElements && textElements.trim() !== '') {
-      try {
-        parsedTextElements = JSON.parse(textElements);
-        console.log("Parsed textElements count:", parsedTextElements.length);
-      } catch (error) {
-        console.log("Error parsing textElements:", error);
-        parsedTextElements = [];
+    if (req.files) {
+      if (req.files.templateImage) {
+        templateImagePath = `/uploads/billbook/${req.files.templateImage[0].filename}`;
+      }
+      if (req.files.logo) {
+        logoPath = `/uploads/billbook/${req.files.logo[0].filename}`;
+      }
+      if (req.files.previewImage) {
+        previewImagePath = `/uploads/billbook/${req.files.previewImage[0].filename}`;
       }
     }
 
-    // If textElements exist, force isEdited to true
-    const finalIsEdited = parsedTextElements.length > 0 ? true : isEditedBool;
+    // Parse JSON strings
+    let parsedTextStyles = textStyles;
+    let parsedLogoSettings = logoSettings;
+    let parsedDesign = design;
 
-    const billBookData = {
-      name: name || 'Untitled Bill Book',
-      file: req.file.path,
-      isEdited: finalIsEdited,
-      textElements: parsedTextElements
-    };
+    if (typeof textStyles === 'string') {
+      try {
+        parsedTextStyles = JSON.parse(textStyles);
+      } catch (e) {
+        parsedTextStyles = {};
+      }
+    }
 
-    console.log("Saving to DB:", {
-      name: billBookData.name,
-      isEdited: billBookData.isEdited,
-      textElementsCount: billBookData.textElements.length
+    if (typeof logoSettings === 'string') {
+      try {
+        parsedLogoSettings = JSON.parse(logoSettings);
+      } catch (e) {
+        parsedLogoSettings = {};
+      }
+    }
+
+    if (typeof design === 'string') {
+      try {
+        parsedDesign = JSON.parse(design);
+      } catch (e) {
+        parsedDesign = {};
+      }
+    }
+
+    // Create bill book
+    const billBook = new BillBook({
+      companyName,
+      companyAddress: companyAddress || '',
+      companyEmail: companyEmail || '',
+      companyPhone: companyPhone || '',
+      customerName: customerName || '',
+      customerAddress: customerAddress || '',
+      customerEmail: customerEmail || '',
+      customerPhone: customerPhone || '',
+      textStyles: parsedTextStyles,
+      logoSettings: parsedLogoSettings,
+      design: parsedDesign,
+      useTemplate: useTemplate === 'true' || useTemplate === true,
+      templateImage: templateImagePath,
+      logo: logoPath,
+      previewImage: previewImagePath,
+      createdBy: req.user?._id || null
     });
 
-    const billBook = await BillBook.create(billBookData);
-
-    console.log("=== UPLOAD SUCCESS ===");
+    await billBook.save();
 
     res.status(201).json({
       success: true,
-      message: billBook.isEdited 
-        ? "✅ Edited BillBook saved successfully!" 
-        : "✅ BillBook uploaded successfully!",
+      message: 'Bill book created successfully',
       data: billBook
     });
 
   } catch (error) {
-    console.error("Upload error:", error);
+    console.error('Error creating bill book:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: 'Error creating bill book',
+      error: error.message
     });
   }
 };
+
 
 
 

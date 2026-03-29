@@ -12,7 +12,6 @@ import {
   removeFromCart,
   bookTickets,
   getUserNotifications,
-  updateProfile,
   deleteMovieTicket,
   myPurchasedMovieTickets,
   getWallet,
@@ -22,10 +21,12 @@ import {
   deleteUserAccount,
   deleteAccount,
   confirmDeleteAccount,
-  getUserById
+  getUserById,
+  addBusinessDetails,
+  getBillBookWithBusinessDetails
 } from "../controllers/AuthController.js";
+import { uploadBusinessLogo } from "../config/uploadUtils.js";
 
-import { uploadProfileImage } from "../config/uploadUtils.js";
 
 
 const router = express.Router();
@@ -46,11 +47,6 @@ router.delete("/removeticketfromcart", removeFromCart);
 router.post("/booktickets", bookTickets);
 router.get('/mynotification/:userId', getUserNotifications);
 
-router.put(
-  "/update-profile/:userId",
-  uploadProfileImage.single("profileImage"),
-  updateProfile
-);
 
 router.get('/purchasedmovietickets/:userId', myPurchasedMovieTickets);
 
@@ -68,6 +64,14 @@ router.delete('/deletemyaccount/:userId', deleteUserAccount);
 router.post('/deleteaccount', deleteAccount)
 router.get('/confirm-delete-account/:token', confirmDeleteAccount);
 
+router.post(
+  '/business-details/:userId',
+  uploadBusinessLogo.single('logo'),
+  addBusinessDetails
+);
+
+
+router.get('/getbillbook/:userId/:billbookId', getBillBookWithBusinessDetails);
 
 
 

@@ -14,6 +14,18 @@ const userSchema = new mongoose.Schema({
     profileImage: { type: String, default: null },
     profileImageId: { type: String, default: null },
 
+
+      // Business Details
+  businessDetails: {
+    companyName: { type: String, },
+    companyAddress: { type: String, },
+    companyEmail: { type: String, },
+    companyPhone: { type: String, },
+    companyWebsite: { type: String,},
+    gstNumber: { type: String,},
+    panNumber: { type: String,},
+    logo: { type: String, default: null }
+  },
     // Account Status
     isActive: { type: Boolean, default: true },
     lastLogin: { type: Date, default: null },
