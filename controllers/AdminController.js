@@ -1884,6 +1884,39 @@ export const getSingleBillBook = async (req, res) => {
 
 
 
+export const deleteBillBook = async (req, res) => {
+  try {
+    console.log("=== DELETE BILLBOOK START ===");
+
+    const { id } = req.params;
+
+    const billBook = await BillBook.findByIdAndDelete(id);
+
+    if (!billBook) {
+      return res.status(404).json({
+        success: false,
+        message: "BillBook not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "BillBook deleted successfully",
+      data: billBook
+    });
+
+  } catch (error) {
+    console.error("Delete BillBook error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
+
 export const updateBillBook = async (req, res) => {
   try {
     console.log("=== UPDATE REQUEST START ===");
@@ -2059,3 +2092,6 @@ const updateImageWithText = async (filePath, textElements) => {
     throw error;
   }
 };
+
+
+

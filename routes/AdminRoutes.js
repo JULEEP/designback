@@ -1,5 +1,5 @@
 import express from "express";
-import { createBanner, createBillBook, createPlatformCharge, deleteAdminNotification, deleteBanner, deleteMovieName, deleteMovieTicket, deletePlatformCharge, deletePurchasedMovieTicket, deleteRedemptionRequest, deleteUser, getAdminNotifications, getAdminProfile, getAllBanners, getAllBillBooks, getAllMoviesNames, getAllMovieTickets, getAllPlatformCharges, getAllPurchasedMovieTickets, getAllRedemptionRequests, getAllUsers, getAllUsersMovieTickets, getDashboardStats, getOngoingMovies, getReportedBookings, getSingleBillBook, getSingleMovieTicket, loginAdmin, registerAdmin, updateAdminProfile, updateBanner, updateBillBook, updateMovieName, updateMovieTicket, updateMovieTicketStatus, updatePlatformCharge, updateRedemptionStatus, updateUser } from "../controllers/AdminController.js";
+import { createBanner, createBillBook, createPlatformCharge, deleteAdminNotification, deleteBanner, deleteBillBook, deleteMovieName, deleteMovieTicket, deletePlatformCharge, deletePurchasedMovieTicket, deleteRedemptionRequest, deleteUser, getAdminNotifications, getAdminProfile, getAllBanners, getAllBillBooks, getAllMoviesNames, getAllMovieTickets, getAllPlatformCharges, getAllPurchasedMovieTickets, getAllRedemptionRequests, getAllUsers, getAllUsersMovieTickets, getDashboardStats, getOngoingMovies, getReportedBookings, getSingleBillBook, getSingleMovieTicket, loginAdmin, registerAdmin, updateAdminProfile, updateBanner, updateBillBook, updateMovieName, updateMovieTicket, updateMovieTicketStatus, updatePlatformCharge, updateRedemptionStatus, updateUser } from "../controllers/AdminController.js";
 import { uploadBillBookFiles } from "../config/uploadUtils.js";
 
 const router = express.Router();
@@ -66,6 +66,7 @@ router.post('/createbillbook', uploadBillBookFiles, createBillBook);
 
 router.get("/allbillbooks", getAllBillBooks);
 router.get("/billbook/:id", getSingleBillBook);
+router.delete("/billbook/:id", deleteBillBook);
 router.put('/billbook/:billBookId', updateBillBook);
 
 

@@ -1574,6 +1574,276 @@ export const addBusinessDetails = async (req, res) => {
 
 
 
+// const fetchAndConvertImage = async (url) => {
+//   console.log('Fetching image from URL:', url);
+//   const response = await axios.get(url, { responseType: 'arraybuffer' });
+//   const buffer = Buffer.from(response.data);
+  
+//   const isWebP = buffer.toString('hex', 0, 4) === '52494646';
+//   if (isWebP || url.includes('.webp')) {
+//     console.log('Detected WebP format, converting to PNG...');
+//     const pngBuffer = await sharp(buffer).png().toBuffer();
+//     return pngBuffer;
+//   }
+  
+//   return buffer;
+// };
+
+// const drawRoundedRect = (ctx, x, y, width, height, radius) => {
+//   ctx.beginPath();
+//   ctx.moveTo(x + radius, y);
+//   ctx.lineTo(x + width - radius, y);
+//   ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+//   ctx.lineTo(x + width, y + height - radius);
+//   ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+//   ctx.lineTo(x + radius, y + height);
+//   ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+//   ctx.lineTo(x, y + radius);
+//   ctx.quadraticCurveTo(x, y, x + radius, y);
+//   ctx.closePath();
+// };
+
+// const saveBufferToFile = (buffer, filename) => {
+//   const uploadDir = path.join(__dirname, '../uploads/billbook');
+//   if (!fs.existsSync(uploadDir)) {
+//     fs.mkdirSync(uploadDir, { recursive: true });
+//   }
+//   const filePath = path.join(uploadDir, filename);
+//   fs.writeFileSync(filePath, buffer);
+//   console.log('File saved at:', filePath);
+//   return `/uploads/billbook/${filename}`;
+// };
+
+// const overlayBillBookOnTemplate = async (
+//   templateImageUrl,
+//   textStyles,
+//   logoUrl,
+//   logoSettings
+// ) => {
+//   try {
+//     const templateBuffer = await fetchAndConvertImage(templateImageUrl);
+//     const templateImg = await loadImage(templateBuffer);
+
+//     const CARD_W = templateImg.width;   // 800
+//     const CARD_H = templateImg.height;  // 1000
+//     console.log(`Template size: ${CARD_W}x${CARD_H}`);
+
+//     const canvas = createCanvas(CARD_W, CARD_H);
+//     const ctx = canvas.getContext('2d');
+//     ctx.drawImage(templateImg, 0, 0, CARD_W, CARD_H);
+
+//     // ─── Text fields overlay ───
+//     const fields = [
+//       'companyName', 'companyAddress', 'companyEmail',
+//       'companyPhone', 'companyWebsite', 'gstNumber', 'panNumber'
+//     ];
+
+//     for (const field of fields) {
+//       const style = textStyles?.[field];
+//       if (!style || !style.text) continue;
+//       if (style.show === false) continue;
+
+//       const fontSize   = style.fontSize   || 14;
+//       const fontWeight = style.fontWeight || 'normal';
+//       const fontFamily = style.fontFamily || 'sans-serif';
+//       const color      = style.color      || '#000000';
+//       const italic     = style.italic ? 'italic ' : '';
+//       const x          = style.x;
+//       const y          = style.y;
+
+//       ctx.save();
+//       ctx.font         = `${italic}${fontWeight} ${fontSize}px ${fontFamily}`;
+//       ctx.fillStyle    = color;
+//   ctx.textBaseline = 'alphabetic'; // ✅ BAS YE EK LINE CHANGE KI
+
+//       if (style.underline) {
+//         const textWidth = ctx.measureText(style.text).width;
+//         ctx.fillRect(x, y + fontSize + 2, textWidth, 1);
+//       }
+
+//       ctx.fillText(style.text, x, y);
+//       ctx.restore();
+//       console.log(`Drew [${field}]: "${style.text}" at (${x}, ${y}) fontSize=${fontSize}`);
+//     }
+
+//     // ─── Logo overlay ───
+//     if (logoUrl && logoSettings && logoSettings.show !== false) {
+//       try {
+//         const logoBuffer = await fetchAndConvertImage(logoUrl);
+//         const logoImg    = await loadImage(logoBuffer);
+
+//         const lx    = logoSettings.x;
+//         const ly    = logoSettings.y;
+//         const lw    = logoSettings.width;
+//         const lh    = logoSettings.height;
+//         const shape = logoSettings.shape;
+//         const br    = logoSettings.borderRadius;
+//         const bw    = logoSettings.borderWidth;
+//         const bc    = logoSettings.borderColor;
+
+//         console.log(`Logo: shape=${shape}, br=${br}, pos=(${lx},${ly}), size=${lw}x${lh}`);
+
+//         ctx.save();
+
+//         if (shape === 'circle') {
+//           ctx.beginPath();
+//           ctx.arc(lx + lw / 2, ly + lh / 2, Math.min(lw, lh) / 2, 0, Math.PI * 2);
+//           ctx.clip();
+//         } else if (br > 0) {
+//           drawRoundedRect(ctx, lx, ly, lw, lh, br);
+//           ctx.clip();
+//         }
+
+//         ctx.drawImage(logoImg, lx, ly, lw, lh);
+
+//         if (bw > 0) {
+//           ctx.strokeStyle = bc;
+//           ctx.lineWidth   = bw;
+//           if (shape === 'circle') {
+//             ctx.beginPath();
+//             ctx.arc(lx + lw / 2, ly + lh / 2, Math.min(lw, lh) / 2, 0, Math.PI * 2);
+//             ctx.stroke();
+//           } else if (br > 0) {
+//             drawRoundedRect(ctx, lx, ly, lw, lh, br);
+//             ctx.stroke();
+//           } else {
+//             ctx.strokeRect(lx, ly, lw, lh);
+//           }
+//         }
+
+//         ctx.restore();
+//         console.log('Logo drawn successfully');
+//       } catch (logoErr) {
+//         console.warn('Logo load failed, skipping:', logoErr.message);
+//       }
+//     }
+
+//     const outputBuffer = canvas.toBuffer('image/png');
+//     const filename     = `billbook-overlay-${Date.now()}-${Math.round(Math.random() * 1e9)}.png`;
+//     const savedPath    = saveBufferToFile(outputBuffer, filename);
+
+//     console.log('Overlay saved:', savedPath);
+//     return savedPath;
+
+//   } catch (error) {
+//     console.error('overlayBillBookOnTemplate error:', error.message);
+//     return null;
+//   }
+// };
+
+// export const getBillBookWithBusinessDetails = async (req, res) => {
+//   try {
+//     const { userId, billbookId } = req.params;
+
+//     if (!userId || !billbookId) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'User ID and BillBook ID are required',
+//       });
+//     }
+
+//     const user = await User.findById(userId).select('businessDetails');
+//     if (!user) {
+//       return res.status(404).json({ success: false, message: 'User not found' });
+//     }
+
+//     const billbook = await BillBook.findById(billbookId);
+//     if (!billbook) {
+//       return res.status(404).json({ success: false, message: 'BillBook not found' });
+//     }
+
+//     const businessDetails = user.businessDetails || {};
+//     const billbookStyles  = billbook.textStyles   || {};
+//     const baseUrl         = `${req.protocol}://${req.get('host')}`;
+
+//     // ─── Text styles — billbook coordinates + user ka data ───
+//     const fields = [
+//       'companyName', 'companyAddress', 'companyEmail',
+//       'companyPhone', 'companyWebsite', 'gstNumber', 'panNumber'
+//     ];
+
+//     const overlayTextStyles = {};
+//     fields.forEach((field) => {
+//       const tmpl = billbookStyles[field] || {};
+//       const text = businessDetails[field] || billbook[field] || '';
+
+//       // ✅ Sirf wahi fields jo billbook mein hain — text empty ho to skip hoga
+//       overlayTextStyles[field] = {
+//         fontSize:   tmpl.fontSize,
+//         fontWeight: tmpl.fontWeight,
+//         fontFamily: tmpl.fontFamily || 'sans-serif',
+//         color:      tmpl.color,
+//         italic:     tmpl.italic    || false,
+//         underline:  tmpl.underline || false,
+//         show:       tmpl.show !== undefined ? tmpl.show : true,
+//         x:          tmpl.x,
+//         y:          tmpl.y,
+//         text,
+//       };
+//     });
+
+//     // ─── Logo settings — billbook as-is ───
+//     const overlayLogoSettings = billbook.logoSettings || {};
+
+//     // ─── Template URL ───
+//     const templateImageUrl = billbook.templateImage?.startsWith('http')
+//       ? billbook.templateImage
+//       : `${baseUrl}${billbook.templateImage}`;
+
+//     // ─── Logo URL — user ka pehle, fallback billbook ka ───
+//     let logoUrl = '';
+//     if (businessDetails.logo) {
+//       logoUrl = businessDetails.logo.startsWith('http')
+//         ? businessDetails.logo
+//         : `${baseUrl}${businessDetails.logo}`;
+//     } else if (billbook.logo) {
+//       logoUrl = billbook.logo.startsWith('http')
+//         ? billbook.logo
+//         : `${baseUrl}${billbook.logo}`;
+//     }
+
+//     console.log('Template URL:', templateImageUrl);
+//     console.log('Logo URL:', logoUrl);
+//     console.log('Logo Settings:', JSON.stringify(overlayLogoSettings));
+//     console.log('Text Styles with data:', JSON.stringify(overlayTextStyles));
+
+//     // ─── Overlay ───
+//     let overlaidImagePath = '';
+//     if (templateImageUrl) {
+//       overlaidImagePath = await overlayBillBookOnTemplate(
+//         templateImageUrl,
+//         overlayTextStyles,
+//         logoUrl,
+//         overlayLogoSettings
+//       );
+//     }
+
+//     const overlaidImageUrl = overlaidImagePath
+//       ? `${baseUrl}${overlaidImagePath}`
+//       : '';
+
+//     return res.status(200).json({
+//       success: true,
+//       data: {
+//         overlaidImage:     overlaidImageUrl,
+//         overlaidImagePath: overlaidImagePath,
+//         billbookId:        billbook._id,
+//         userId:            user._id,
+//       },
+//     });
+
+//   } catch (error) {
+//     console.error('getBillBookWithBusinessDetails error:', error);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Error getting billbook',
+//       error: error.message,
+//     });
+//   }
+// };
+
+
+
 const fetchAndConvertImage = async (url) => {
   console.log('Fetching image from URL:', url);
   const response = await axios.get(url, { responseType: 'arraybuffer' });
@@ -1654,7 +1924,7 @@ const overlayBillBookOnTemplate = async (
       ctx.save();
       ctx.font         = `${italic}${fontWeight} ${fontSize}px ${fontFamily}`;
       ctx.fillStyle    = color;
-  ctx.textBaseline = 'alphabetic'; // ✅ BAS YE EK LINE CHANGE KI
+      ctx.textBaseline = 'alphabetic';
 
       if (style.underline) {
         const textWidth = ctx.measureText(style.text).width;
@@ -1744,17 +2014,43 @@ export const getBillBookWithBusinessDetails = async (req, res) => {
 
     const user = await User.findById(userId).select('businessDetails');
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
     }
 
     const billbook = await BillBook.findById(billbookId);
     if (!billbook) {
-      return res.status(404).json({ success: false, message: 'BillBook not found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'BillBook not found' 
+      });
     }
 
     const businessDetails = user.businessDetails || {};
     const billbookStyles  = billbook.textStyles   || {};
     const baseUrl         = `${req.protocol}://${req.get('host')}`;
+
+    // 🔥 CHECK: User ne business details add kiye hain ya nahi?
+    const hasBusinessDetails = businessDetails.companyName || 
+                               businessDetails.companyAddress || 
+                               businessDetails.companyEmail || 
+                               businessDetails.companyPhone;
+
+    // Agar user ke paas business details nahi hain, toh error bhejo
+    if (!hasBusinessDetails) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please add your business details first before generating bill',
+        requiresBusinessDetails: true,
+        data: {
+          billbookId: billbook._id,
+          userId: user._id,
+          message: 'Business details not found. Please update your profile with business information.'
+        }
+      });
+    }
 
     // ─── Text styles — billbook coordinates + user ka data ───
     const fields = [
@@ -1765,9 +2061,15 @@ export const getBillBookWithBusinessDetails = async (req, res) => {
     const overlayTextStyles = {};
     fields.forEach((field) => {
       const tmpl = billbookStyles[field] || {};
-      const text = businessDetails[field] || billbook[field] || '';
+      
+      // 🔥 SIRF USER KA DATA USE KARO, KISI AUR KA NAHI
+      let text = businessDetails[field] || '';
+      
+      // Agar text empty hai toh skip karo, kisi aur se mat lo
+      if (!text) {
+        console.log(`⚠️ No business details found for field: ${field}`);
+      }
 
-      // ✅ Sirf wahi fields jo billbook mein hain — text empty ho to skip hoga
       overlayTextStyles[field] = {
         fontSize:   tmpl.fontSize,
         fontWeight: tmpl.fontWeight,
@@ -1778,7 +2080,7 @@ export const getBillBookWithBusinessDetails = async (req, res) => {
         show:       tmpl.show !== undefined ? tmpl.show : true,
         x:          tmpl.x,
         y:          tmpl.y,
-        text,
+        text,  // Sirf user ka data, warna empty string
       };
     });
 
@@ -1790,22 +2092,37 @@ export const getBillBookWithBusinessDetails = async (req, res) => {
       ? billbook.templateImage
       : `${baseUrl}${billbook.templateImage}`;
 
-    // ─── Logo URL — user ka pehle, fallback billbook ka ───
+    // ─── Logo URL — SIRF USER KA LOGO, KOI AUR NAHI ───
     let logoUrl = '';
     if (businessDetails.logo) {
       logoUrl = businessDetails.logo.startsWith('http')
         ? businessDetails.logo
         : `${baseUrl}${businessDetails.logo}`;
-    } else if (billbook.logo) {
-      logoUrl = billbook.logo.startsWith('http')
-        ? billbook.logo
-        : `${baseUrl}${billbook.logo}`;
+    } else {
+      console.log('⚠️ No logo found in user business details');
     }
 
-    console.log('Template URL:', templateImageUrl);
-    console.log('Logo URL:', logoUrl);
-    console.log('Logo Settings:', JSON.stringify(overlayLogoSettings));
-    console.log('Text Styles with data:', JSON.stringify(overlayTextStyles));
+    console.log('📋 User Business Details:', JSON.stringify(businessDetails, null, 2));
+    console.log('🖼️ Template URL:', templateImageUrl);
+    console.log('🏷️ Logo URL:', logoUrl);
+    console.log('⚙️ Logo Settings:', JSON.stringify(overlayLogoSettings));
+    console.log('📝 Text Styles with data:', JSON.stringify(overlayTextStyles));
+
+    // Check if any text fields have data
+    const hasAnyTextData = Object.values(overlayTextStyles).some(style => style.text);
+    
+    if (!hasAnyTextData && !logoUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'No business details or logo found. Please add your business information first.',
+        requiresBusinessDetails: true,
+        data: {
+          billbookId: billbook._id,
+          userId: user._id,
+          missingFields: fields.filter(f => !businessDetails[f])
+        }
+      });
+    }
 
     // ─── Overlay ───
     let overlaidImagePath = '';
@@ -1829,6 +2146,8 @@ export const getBillBookWithBusinessDetails = async (req, res) => {
         overlaidImagePath: overlaidImagePath,
         billbookId:        billbook._id,
         userId:            user._id,
+        businessDetails:   businessDetails,
+        hasBusinessDetails: true
       },
     });
 
