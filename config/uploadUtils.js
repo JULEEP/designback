@@ -70,6 +70,42 @@ export const uploadBillBookFiles = uploadBillBook.fields([
 ]);
 
 
+
+// Create specific uploader for doctor prescription
+export const uploadDoctorPrescription = createUploader({
+  destination: "uploads/doctorprescription/",
+  allowedTypes: /jpeg|jpg|png|gif|webp/,
+  maxSize: 10 * 1024 * 1024, // 10MB
+  prefix: "doctorpad"
+});
+
+// Export upload middleware for doctor prescription
+export const uploadDoctorPrescriptionFiles = uploadDoctorPrescription.fields([
+  { name: 'templateImage', maxCount: 1 },
+  { name: 'logo', maxCount: 1 },
+  { name: 'previewImage', maxCount: 1 }
+]);
+
+
+// Wedding Card Uploader
+export const uploadWeddingCard = createUploader({
+  destination: "uploads/weddingcards/",
+  allowedTypes: /jpeg|jpg|png|gif|webp/,
+  maxSize: 10 * 1024 * 1024,
+  prefix: "wedding"
+});
+
+// Upload middleware for wedding card
+export const uploadWeddingCardFiles = uploadWeddingCard.fields([
+  { name: 'frontImage', maxCount: 1 },
+  { name: 'insideImage', maxCount: 1 },
+  { name: 'backImage', maxCount: 1 },
+  { name: 'logo', maxCount: 1 },
+  { name: 'frontPreview', maxCount: 1 },
+  { name: 'insidePreview', maxCount: 1 },
+  { name: 'backPreview', maxCount: 1 }
+]);
+
 // Business logo uploader
 export const uploadBusinessLogo = createUploader({
   destination: "uploads/business/",

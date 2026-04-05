@@ -8,6 +8,8 @@ import Banner from "../models/Banner.js";
 import Redemption from "../models/Redemption.js";
 import PlatformCharge from "../models/PlatformCharge.js";
 import BillBook from "../models/BillBook.js";
+import DoctorPrescription from "../models/DoctorPrescription.js";
+import WeddingCard from "../models/WeddingCard.js";
 
 
 
@@ -2093,5 +2095,549 @@ const updateImageWithText = async (filePath, textElements) => {
   }
 };
 
+
+
+// Create Doctor Prescription
+export const createDoctorPrescription = async (req, res) => {
+  try {
+    console.log('Request Body:', req.body);
+    console.log('Request Files:', req.files);
+
+    const {
+      doctorName,
+      qualification,
+      hospitalName,
+      address,
+      phone,
+      registrationNo,
+      timing,
+      textStyles,
+      logoSettings,
+      design,
+      useTemplate,
+      language
+    } = req.body;
+
+    // Validate required fields
+    if (!doctorName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Doctor name is required'
+      });
+    }
+
+    if (!hospitalName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Hospital name is required'
+      });
+    }
+
+    // Get file paths from uploaded files
+    let templateImagePath = null;
+    let logoPath = null;
+    let previewImagePath = null;
+
+    if (req.files) {
+      if (req.files.templateImage) {
+        templateImagePath = `/uploads/doctorprescription/${req.files.templateImage[0].filename}`;
+      }
+      if (req.files.logo) {
+        logoPath = `/uploads/doctorprescription/${req.files.logo[0].filename}`;
+      }
+      if (req.files.previewImage) {
+        previewImagePath = `/uploads/doctorprescription/${req.files.previewImage[0].filename}`;
+      }
+    }
+
+    // Parse JSON strings
+    let parsedTextStyles = textStyles;
+    let parsedLogoSettings = logoSettings;
+    let parsedDesign = design;
+
+    if (typeof textStyles === 'string') {
+      try {
+        parsedTextStyles = JSON.parse(textStyles);
+      } catch (e) {
+        parsedTextStyles = {};
+      }
+    }
+
+    if (typeof logoSettings === 'string') {
+      try {
+        parsedLogoSettings = JSON.parse(logoSettings);
+      } catch (e) {
+        parsedLogoSettings = {};
+      }
+    }
+
+    if (typeof design === 'string') {
+      try {
+        parsedDesign = JSON.parse(design);
+      } catch (e) {
+        parsedDesign = {};
+      }
+    }
+
+    // Create doctor prescription
+    const doctorPrescription = new DoctorPrescription({
+      doctorName,
+      qualification: qualification || '',
+      hospitalName,
+      address: address || '',
+      phone: phone || '',
+      registrationNo: registrationNo || '',
+      timing: timing || '',
+      textStyles: parsedTextStyles,
+      logoSettings: parsedLogoSettings,
+      design: parsedDesign,
+      useTemplate: useTemplate === 'true' || useTemplate === true,
+      templateImage: templateImagePath,
+      logo: logoPath,
+      previewImage: previewImagePath,
+      language: language || 'en',
+      createdBy: req.user?._id || null
+    });
+
+    await doctorPrescription.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Doctor prescription pad created successfully',
+      data: doctorPrescription
+    });
+
+  } catch (error) {
+    console.error('Error creating doctor prescription:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating doctor prescription',
+      error: error.message
+    });
+  }
+};
+
+// Get all doctor prescriptions
+export const getAllDoctorPrescriptions = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status = 'active', search = '' } = req.query;
+    
+    const query = { status };
+    
+    if (search) {
+      query.$or = [
+        { doctorName: { $regex: search, $options: 'i' } },
+        { hospitalName: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    const prescriptions = await DoctorPrescription.find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    
+    const total = await DoctorPrescription.countDocuments(query);
+    
+    res.status(200).json({
+      success: true,
+      data: prescriptions,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching doctor prescriptions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching doctor prescriptions',
+      error: error.message
+    });
+  }
+};
+
+// Get single doctor prescription by ID
+export const getDoctorPrescriptionById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const prescription = await DoctorPrescription.findById(id);
+    
+    if (!prescription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor prescription not found'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: prescription
+    });
+    
+  } catch (error) {
+    console.error('Error fetching doctor prescription:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching doctor prescription',
+      error: error.message
+    });
+  }
+};
+
+// Update doctor prescription
+export const updateDoctorPrescription = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Find existing prescription
+    const existingPrescription = await DoctorPrescription.findById(id);
+    
+    if (!existingPrescription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor prescription not found'
+      });
+    }
+    
+    const {
+      doctorName,
+      qualification,
+      hospitalName,
+      address,
+      phone,
+      registrationNo,
+      timing,
+      textStyles,
+      logoSettings,
+      design,
+      useTemplate,
+      language,
+      status
+    } = req.body;
+    
+    // Parse JSON strings if needed
+    let parsedTextStyles = textStyles;
+    let parsedLogoSettings = logoSettings;
+    let parsedDesign = design;
+    
+    if (typeof textStyles === 'string') {
+      try {
+        parsedTextStyles = JSON.parse(textStyles);
+      } catch (e) {
+        parsedTextStyles = existingPrescription.textStyles;
+      }
+    }
+    
+    if (typeof logoSettings === 'string') {
+      try {
+        parsedLogoSettings = JSON.parse(logoSettings);
+      } catch (e) {
+        parsedLogoSettings = existingPrescription.logoSettings;
+      }
+    }
+    
+    if (typeof design === 'string') {
+      try {
+        parsedDesign = JSON.parse(design);
+      } catch (e) {
+        parsedDesign = existingPrescription.design;
+      }
+    }
+    
+    // Handle file updates - delete old files if new ones are uploaded
+    if (req.files) {
+      // Delete old template image if new one is uploaded
+      if (req.files.templateImage && existingPrescription.templateImage) {
+        const oldTemplatePath = path.join(process.cwd(), existingPrescription.templateImage);
+        if (fs.existsSync(oldTemplatePath)) {
+          fs.unlinkSync(oldTemplatePath);
+        }
+      }
+      
+      // Delete old logo if new one is uploaded
+      if (req.files.logo && existingPrescription.logo) {
+        const oldLogoPath = path.join(process.cwd(), existingPrescription.logo);
+        if (fs.existsSync(oldLogoPath)) {
+          fs.unlinkSync(oldLogoPath);
+        }
+      }
+      
+      // Delete old preview image if new one is uploaded
+      if (req.files.previewImage && existingPrescription.previewImage) {
+        const oldPreviewPath = path.join(process.cwd(), existingPrescription.previewImage);
+        if (fs.existsSync(oldPreviewPath)) {
+          fs.unlinkSync(oldPreviewPath);
+        }
+      }
+    }
+    
+    // Prepare update data
+    const updateData = {
+      doctorName: doctorName || existingPrescription.doctorName,
+      qualification: qualification !== undefined ? qualification : existingPrescription.qualification,
+      hospitalName: hospitalName || existingPrescription.hospitalName,
+      address: address !== undefined ? address : existingPrescription.address,
+      phone: phone !== undefined ? phone : existingPrescription.phone,
+      registrationNo: registrationNo !== undefined ? registrationNo : existingPrescription.registrationNo,
+      timing: timing !== undefined ? timing : existingPrescription.timing,
+      textStyles: parsedTextStyles,
+      logoSettings: parsedLogoSettings,
+      design: parsedDesign,
+      useTemplate: useTemplate !== undefined ? (useTemplate === 'true' || useTemplate === true) : existingPrescription.useTemplate,
+      language: language || existingPrescription.language,
+      status: status || existingPrescription.status
+    };
+    
+    // Update file paths if new files are uploaded
+    if (req.files) {
+      if (req.files.templateImage) {
+        updateData.templateImage = `/uploads/doctorprescription/${req.files.templateImage[0].filename}`;
+      }
+      if (req.files.logo) {
+        updateData.logo = `/uploads/doctorprescription/${req.files.logo[0].filename}`;
+      }
+      if (req.files.previewImage) {
+        updateData.previewImage = `/uploads/doctorprescription/${req.files.previewImage[0].filename}`;
+      }
+    }
+    
+    const updatedPrescription = await DoctorPrescription.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    
+    res.status(200).json({
+      success: true,
+      message: 'Doctor prescription updated successfully',
+      data: updatedPrescription
+    });
+    
+  } catch (error) {
+    console.error('Error updating doctor prescription:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating doctor prescription',
+      error: error.message
+    });
+  }
+};
+
+// Delete doctor prescription (soft delete - change status to inactive)
+export const deleteDoctorPrescription = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const prescription = await DoctorPrescription.findById(id);
+    
+    if (!prescription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor prescription not found'
+      });
+    }
+    
+    // Soft delete - change status to inactive
+    prescription.status = 'inactive';
+    await prescription.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Doctor prescription deleted successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error deleting doctor prescription:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting doctor prescription',
+      error: error.message
+    });
+  }
+};
+
+
+
+
+/// Create Wedding Card
+export const createWeddingCard = async (req, res) => {
+  try {
+    console.log('Request Body:', req.body);
+    console.log('Request Files:', req.files);
+
+    const {
+      groomName, groomFatherName, groomMotherName, groomMobile,
+      brideName, brideFatherName, brideMotherName, brideMobile,
+      ceremonyDate, ceremonyTime, ceremonyVenue, ceremonyAddress, ceremonyContact,
+      receptionDate, receptionTime, receptionVenue, receptionAddress, receptionContact,
+      additionalInfo, dressCode, rsvpContact, rsvpBy,
+      textStyles, logoSettings, design, language,
+      customEvents, relatives, hindiTranslations
+    } = req.body;
+
+    // Validate required fields
+    if (!groomName || !brideName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Groom name and Bride name are required'
+      });
+    }
+
+    // Get file paths
+    let frontImagePath = null, insideImagePath = null, backImagePath = null;
+    let logoPath = null;
+    let frontPreviewPath = null, insidePreviewPath = null, backPreviewPath = null;
+
+    if (req.files) {
+      // Template images
+      if (req.files.frontImage) {
+        frontImagePath = `/uploads/weddingcards/${req.files.frontImage[0].filename}`;
+        console.log('Front Image saved:', frontImagePath);
+      }
+      if (req.files.insideImage) {
+        insideImagePath = `/uploads/weddingcards/${req.files.insideImage[0].filename}`;
+        console.log('Inside Image saved:', insideImagePath);
+      }
+      if (req.files.backImage) {
+        backImagePath = `/uploads/weddingcards/${req.files.backImage[0].filename}`;
+        console.log('Back Image saved:', backImagePath);
+      }
+      
+      // Logo
+      if (req.files.logo) {
+        logoPath = `/uploads/weddingcards/${req.files.logo[0].filename}`;
+        console.log('Logo saved:', logoPath);
+      }
+      
+      // Preview images (Front, Inside, Back)
+      if (req.files.frontPreview) {
+        frontPreviewPath = `/uploads/weddingcards/${req.files.frontPreview[0].filename}`;
+        console.log('Front Preview saved:', frontPreviewPath);
+      }
+      if (req.files.insidePreview) {
+        insidePreviewPath = `/uploads/weddingcards/${req.files.insidePreview[0].filename}`;
+        console.log('Inside Preview saved:', insidePreviewPath);
+      }
+      if (req.files.backPreview) {
+        backPreviewPath = `/uploads/weddingcards/${req.files.backPreview[0].filename}`;
+        console.log('Back Preview saved:', backPreviewPath);
+      }
+    }
+
+    // Parse JSON strings
+    let parsedTextStyles = textStyles;
+    let parsedLogoSettings = logoSettings;
+    let parsedDesign = design;
+    let parsedCustomEvents = customEvents;
+    let parsedRelatives = relatives;
+    let parsedHindiTranslations = hindiTranslations;
+
+    if (typeof textStyles === 'string') {
+      try { parsedTextStyles = JSON.parse(textStyles); } catch (e) { parsedTextStyles = {}; }
+    }
+    if (typeof logoSettings === 'string') {
+      try { parsedLogoSettings = JSON.parse(logoSettings); } catch (e) { parsedLogoSettings = {}; }
+    }
+    if (typeof design === 'string') {
+      try { parsedDesign = JSON.parse(design); } catch (e) { parsedDesign = {}; }
+    }
+    if (typeof customEvents === 'string') {
+      try { parsedCustomEvents = JSON.parse(customEvents); } catch (e) { parsedCustomEvents = []; }
+    }
+    if (typeof relatives === 'string') {
+      try { parsedRelatives = JSON.parse(relatives); } catch (e) { parsedRelatives = []; }
+    }
+    if (typeof hindiTranslations === 'string') {
+      try { parsedHindiTranslations = JSON.parse(hindiTranslations); } catch (e) { parsedHindiTranslations = {}; }
+    }
+
+    // Create wedding card
+    const weddingCard = new WeddingCard({
+      groomName, groomFatherName, groomMotherName, groomMobile,
+      brideName, brideFatherName, brideMotherName, brideMobile,
+      ceremonyDate, ceremonyTime, ceremonyVenue, ceremonyAddress, ceremonyContact,
+      receptionDate, receptionTime, receptionVenue, receptionAddress, receptionContact,
+      additionalInfo, dressCode, rsvpContact, rsvpBy,
+      textStyles: parsedTextStyles,
+      logoSettings: parsedLogoSettings,
+      design: parsedDesign,
+      customEvents: parsedCustomEvents,
+      relatives: parsedRelatives,
+      hindiTranslations: parsedHindiTranslations,
+      frontImage: frontImagePath,
+      insideImage: insideImagePath,
+      backImage: backImagePath,
+      frontPreview: frontPreviewPath,
+      insidePreview: insidePreviewPath,
+      backPreview: backPreviewPath,
+      logo: logoPath,
+      language: language || 'en',
+      createdBy: req.user?._id || null
+    });
+
+    await weddingCard.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Wedding card created successfully',
+      data: weddingCard
+    });
+
+  } catch (error) {
+    console.error('Error creating wedding card:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating wedding card',
+      error: error.message
+    });
+  }
+};
+
+
+// Get all wedding cards
+export const getAllWeddingCards = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status = 'active', search = '' } = req.query;
+    
+    const query = { status };
+    
+    if (search) {
+      query.$or = [
+        { groomName: { $regex: search, $options: 'i' } },
+        { brideName: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    const cards = await WeddingCard.find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    
+    const total = await WeddingCard.countDocuments(query);
+    
+    res.status(200).json({
+      success: true,
+      data: cards,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching wedding cards:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching wedding cards',
+      error: error.message
+    });
+  }
+};
 
 

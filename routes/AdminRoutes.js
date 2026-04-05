@@ -1,6 +1,6 @@
 import express from "express";
-import { createBanner, createBillBook, createPlatformCharge, deleteAdminNotification, deleteBanner, deleteBillBook, deleteMovieName, deleteMovieTicket, deletePlatformCharge, deletePurchasedMovieTicket, deleteRedemptionRequest, deleteUser, getAdminNotifications, getAdminProfile, getAllBanners, getAllBillBooks, getAllMoviesNames, getAllMovieTickets, getAllPlatformCharges, getAllPurchasedMovieTickets, getAllRedemptionRequests, getAllUsers, getAllUsersMovieTickets, getDashboardStats, getOngoingMovies, getReportedBookings, getSingleBillBook, getSingleMovieTicket, loginAdmin, registerAdmin, updateAdminProfile, updateBanner, updateBillBook, updateMovieName, updateMovieTicket, updateMovieTicketStatus, updatePlatformCharge, updateRedemptionStatus, updateUser } from "../controllers/AdminController.js";
-import { uploadBillBookFiles } from "../config/uploadUtils.js";
+import { createBanner, createBillBook, createDoctorPrescription, createPlatformCharge, createWeddingCard, deleteAdminNotification, deleteBanner, deleteBillBook, deleteDoctorPrescription, deleteMovieName, deleteMovieTicket, deletePlatformCharge, deletePurchasedMovieTicket, deleteRedemptionRequest, deleteUser, getAdminNotifications, getAdminProfile, getAllBanners, getAllBillBooks, getAllDoctorPrescriptions, getAllMoviesNames, getAllMovieTickets, getAllPlatformCharges, getAllPurchasedMovieTickets, getAllRedemptionRequests, getAllUsers, getAllUsersMovieTickets, getAllWeddingCards, getDashboardStats, getDoctorPrescriptionById, getOngoingMovies, getReportedBookings, getSingleBillBook, getSingleMovieTicket, loginAdmin, registerAdmin, updateAdminProfile, updateBanner, updateBillBook, updateDoctorPrescription, updateMovieName, updateMovieTicket, updateMovieTicketStatus, updatePlatformCharge, updateRedemptionStatus, updateUser } from "../controllers/AdminController.js";
+import { uploadBillBookFiles, uploadDoctorPrescriptionFiles, uploadWeddingCardFiles } from "../config/uploadUtils.js";
 
 const router = express.Router();
 
@@ -68,6 +68,30 @@ router.get("/allbillbooks", getAllBillBooks);
 router.get("/billbook/:id", getSingleBillBook);
 router.delete("/billbook/:id", deleteBillBook);
 router.put('/billbook/:billBookId', updateBillBook);
+
+
+// Create new doctor prescription
+router.post('/createdoctorpad', uploadDoctorPrescriptionFiles, createDoctorPrescription);
+
+// Get all doctor prescriptions (with pagination and filters)
+router.get('/doctorprescriptions', getAllDoctorPrescriptions);
+
+
+// Update doctor prescription
+router.put('/doctorprescription/:id', uploadDoctorPrescriptionFiles, updateDoctorPrescription);
+
+
+
+// Soft delete doctor prescription
+router.delete('/doctorprescription/:id', deleteDoctorPrescription);
+
+
+// Create wedding card
+router.post('/createweddingcard', uploadWeddingCardFiles, createWeddingCard);
+
+// Get all wedding cards
+router.get('/weddingcards', getAllWeddingCards);
+
 
 
 export default router;
