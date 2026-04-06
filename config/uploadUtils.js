@@ -113,3 +113,19 @@ export const uploadBusinessLogo = createUploader({
   maxSize: 5 * 1024 * 1024, // 5MB
   prefix: "business"
 });
+
+
+// Create specific uploader for Ireceipt
+export const uploadIreceipt = createUploader({
+  destination: "uploads/ireceipt/",
+  allowedTypes: /jpeg|jpg|png|gif|webp/,
+  maxSize: 10 * 1024 * 1024, // 10MB
+  prefix: "ireceipt"
+});
+
+// Export upload middleware for Ireceipt
+export const uploadIreceiptFiles = uploadIreceipt.fields([
+  { name: 'templateImage', maxCount: 1 },
+  { name: 'logo', maxCount: 1 },
+  { name: 'previewImage', maxCount: 1 }
+]);

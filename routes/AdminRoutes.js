@@ -1,6 +1,6 @@
 import express from "express";
-import { createBanner, createBillBook, createDoctorPrescription, createPlatformCharge, createWeddingCard, deleteAdminNotification, deleteBanner, deleteBillBook, deleteDoctorPrescription, deleteMovieName, deleteMovieTicket, deletePlatformCharge, deletePurchasedMovieTicket, deleteRedemptionRequest, deleteUser, getAdminNotifications, getAdminProfile, getAllBanners, getAllBillBooks, getAllDoctorPrescriptions, getAllMoviesNames, getAllMovieTickets, getAllPlatformCharges, getAllPurchasedMovieTickets, getAllRedemptionRequests, getAllUsers, getAllUsersMovieTickets, getAllWeddingCards, getDashboardStats, getDoctorPrescriptionById, getOngoingMovies, getReportedBookings, getSingleBillBook, getSingleMovieTicket, loginAdmin, registerAdmin, updateAdminProfile, updateBanner, updateBillBook, updateDoctorPrescription, updateMovieName, updateMovieTicket, updateMovieTicketStatus, updatePlatformCharge, updateRedemptionStatus, updateUser } from "../controllers/AdminController.js";
-import { uploadBillBookFiles, uploadDoctorPrescriptionFiles, uploadWeddingCardFiles } from "../config/uploadUtils.js";
+import { createBanner, createBillBook, createDoctorPrescription, createPlatformCharge, createReceipt, createWeddingCard, deleteAdminNotification, deleteBanner, deleteBillBook, deleteDoctorPrescription, deleteMovieName, deleteMovieTicket, deletePlatformCharge, deletePurchasedMovieTicket, deleteRedemptionRequest, deleteUser, getAdminNotifications, getAdminProfile, getAllBanners, getAllBillBooks, getAllDoctorPrescriptions, getAllMoviesNames, getAllMovieTickets, getAllPlatformCharges, getAllPurchasedMovieTickets, getAllReceipts, getAllRedemptionRequests, getAllUsers, getAllUsersMovieTickets, getAllWeddingCards, getDashboardStats, getDoctorPrescriptionById, getOngoingMovies, getReportedBookings, getSingleBillBook, getSingleMovieTicket, loginAdmin, registerAdmin, updateAdminProfile, updateBanner, updateBillBook, updateDoctorPrescription, updateMovieName, updateMovieTicket, updateMovieTicketStatus, updatePlatformCharge, updateRedemptionStatus, updateUser } from "../controllers/AdminController.js";
+import { uploadBillBookFiles, uploadDoctorPrescriptionFiles, uploadIreceiptFiles, uploadWeddingCardFiles } from "../config/uploadUtils.js";
 
 const router = express.Router();
 
@@ -91,6 +91,13 @@ router.post('/createweddingcard', uploadWeddingCardFiles, createWeddingCard);
 
 // Get all wedding cards
 router.get('/weddingcards', getAllWeddingCards);
+
+
+// Create receipt with file upload
+router.post('/createreceipt', uploadIreceiptFiles, createReceipt);
+
+// Get all receipts
+router.get('/receipts', getAllReceipts);
 
 
 

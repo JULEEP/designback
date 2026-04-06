@@ -10,6 +10,7 @@ import PlatformCharge from "../models/PlatformCharge.js";
 import BillBook from "../models/BillBook.js";
 import DoctorPrescription from "../models/DoctorPrescription.js";
 import WeddingCard from "../models/WeddingCard.js";
+import Ireceipt from "../models/Ireceipt.js";
 
 
 
@@ -2641,3 +2642,130 @@ export const getAllWeddingCards = async (req, res) => {
 };
 
 
+
+
+export const createReceipt = async (req, res) => {
+  try {
+    console.log('Request Body:', req.body);
+    console.log('Request Files:', req.files);
+
+    const {
+      companyName,
+      companyAddress,
+      companyEmail,
+      companyPhone,
+      receiptTitle,
+      receiptNumber,
+      receiptDate,
+      message,
+      textStyles,
+      logoSettings,
+      design,
+      useTemplate,
+      language
+    } = req.body;
+
+
+    // Get file paths from uploaded files
+    let templateImagePath = null;
+    let logoPath = null;
+    let previewImagePath = null;
+
+    if (req.files) {
+      if (req.files.templateImage) {
+        templateImagePath = `/uploads/ireceipt/${req.files.templateImage[0].filename}`;
+      }
+      if (req.files.logo) {
+        logoPath = `/uploads/ireceipt/${req.files.logo[0].filename}`;
+      }
+      if (req.files.previewImage) {
+        previewImagePath = `/uploads/ireceipt/${req.files.previewImage[0].filename}`;
+      }
+    }
+
+    // Parse JSON strings
+    let parsedTextStyles = textStyles;
+    let parsedLogoSettings = logoSettings;
+    let parsedDesign = design;
+
+    if (typeof textStyles === 'string') {
+      try {
+        parsedTextStyles = JSON.parse(textStyles);
+      } catch (e) {
+        parsedTextStyles = {};
+      }
+    }
+
+    if (typeof logoSettings === 'string') {
+      try {
+        parsedLogoSettings = JSON.parse(logoSettings);
+      } catch (e) {
+        parsedLogoSettings = {};
+      }
+    }
+
+    if (typeof design === 'string') {
+      try {
+        parsedDesign = JSON.parse(design);
+      } catch (e) {
+        parsedDesign = {};
+      }
+    }
+
+    // Create receipt - NO PAYMENT FIELDS
+    const receipt = new Ireceipt({
+      companyName,
+      companyAddress: companyAddress || '',
+      companyEmail: companyEmail || '',
+      companyPhone: companyPhone || '',
+      receiptTitle: receiptTitle || 'PAYMENT RECEIPT',
+      receiptNumber: receiptNumber || '',
+      receiptDate: receiptDate || new Date(),
+      message: message || '',
+      textStyles: parsedTextStyles,
+      logoSettings: parsedLogoSettings,
+      design: parsedDesign,
+      useTemplate: useTemplate === 'true' || useTemplate === true,
+      language: language || 'en',
+      templateImage: templateImagePath,
+      logo: logoPath,
+      previewImage: previewImagePath,
+      createdBy: req.user?._id || null
+    });
+
+    await receipt.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Receipt created successfully',
+      data: receipt
+    });
+
+  } catch (error) {
+    console.error('Error creating receipt:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating receipt',
+      error: error.message
+    });
+  }
+};
+// @desc    Get all receipts
+// @route   GET /api/admin/receipts
+export const getAllReceipts = async (req, res) => {
+  try {
+    const receipts = await Ireceipt.find().sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      count: receipts.length,
+      data: receipts
+    });
+  } catch (error) {
+    console.error('Error fetching receipts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching receipts',
+      error: error.message
+    });
+  }
+};
