@@ -1,5 +1,5 @@
 import express from "express";
-import { createBanner, createBillBook, createDoctorPrescription, createPlatformCharge, createReceipt, createWeddingCard, deleteAdminNotification, deleteBanner, deleteBillBook, deleteDoctorPrescription, deleteMovieName, deleteMovieTicket, deletePlatformCharge, deletePurchasedMovieTicket, deleteRedemptionRequest, deleteUser, getAdminNotifications, getAdminProfile, getAllBanners, getAllBillBooks, getAllDoctorPrescriptions, getAllMoviesNames, getAllMovieTickets, getAllPlatformCharges, getAllPurchasedMovieTickets, getAllReceipts, getAllRedemptionRequests, getAllUsers, getAllUsersMovieTickets, getAllWeddingCards, getDashboardStats, getDoctorPrescriptionById, getOngoingMovies, getReportedBookings, getSingleBillBook, getSingleMovieTicket, loginAdmin, registerAdmin, updateAdminProfile, updateBanner, updateBillBook, updateDoctorPrescription, updateMovieName, updateMovieTicket, updateMovieTicketStatus, updatePlatformCharge, updateRedemptionStatus, updateUser } from "../controllers/AdminController.js";
+import { createBanner, createBillBook, createDoctorPrescription, createPlatformCharge, createReceipt, createWeddingCard, deleteAdminNotification, deleteBanner, deleteBillBook, deleteDoctorPrescription, deleteMovieName, deleteMovieTicket, deletePlatformCharge, deletePurchasedMovieTicket, deleteRedemptionRequest, deleteUser, getAdminNotifications, getAdminProfile, getAllBanners, getAllBillBooks, getAllDoctorPrescriptions, getAllMoviesNames, getAllMovieTickets, getAllPlatformCharges, getAllPurchasedMovieTickets, getAllReceipts, getAllRedemptionRequests, getAllUsers, getAllUsersMovieTickets, getAllWeddingCards, getDashboardStats, getDoctorPrescriptionById, getOngoingMovies, getReportedBookings, getSingleBillBook, getSingleMovieTicket, getSingleReceipt, loginAdmin, registerAdmin, updateAdminProfile, updateBanner, updateBillBook, updateDoctorPrescription, updateMovieName, updateMovieTicket, updateMovieTicketStatus, updatePlatformCharge, updateRedemptionStatus, updateUser } from "../controllers/AdminController.js";
 import { uploadBillBookFiles, uploadDoctorPrescriptionFiles, uploadIreceiptFiles, uploadWeddingCardFiles } from "../config/uploadUtils.js";
 
 const router = express.Router();
@@ -98,7 +98,8 @@ router.post('/createreceipt', uploadIreceiptFiles, createReceipt);
 
 // Get all receipts
 router.get('/receipts', getAllReceipts);
-
+router.get('/receipts/:id', getSingleReceipt);
+router.get('/doctor-prescription/:id', getDoctorPrescriptionById);
 
 
 export default router;

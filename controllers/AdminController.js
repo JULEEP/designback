@@ -2769,3 +2769,36 @@ export const getAllReceipts = async (req, res) => {
     });
   }
 };
+
+
+
+// @desc    Get single receipt
+// @route   GET /api/admin/receipts/:id
+export const getSingleReceipt = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const receipt = await Ireceipt.findById(id);
+
+    if (!receipt) {
+      return res.status(404).json({
+        success: false,
+        message: 'Receipt not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: receipt
+    });
+
+  } catch (error) {
+    console.error('Error fetching receipt:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching receipt',
+      error: error.message
+    });
+  }
+};
+
