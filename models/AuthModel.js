@@ -26,6 +26,33 @@ const userSchema = new mongoose.Schema({
     panNumber: { type: String,},
     logo: { type: String, default: null }
   },
+
+
+  receiptDetails: {
+  companyName: { type: String, default: '' },
+  companyAddress: { type: String, default: '' },
+  companyEmail: { type: String, default: '' },
+  companyPhone: { type: String, default: '' },
+
+  receiptTitle: { type: String, default: '' },
+  receiptNumber: { type: String, default: '' },
+  receiptDate: { type: Date, default: null },
+  message: { type: String, default: '' },
+
+  logo: { type: String, default: null },
+
+},
+
+  doctorDetails: {
+  doctorName: { type: String, default: '' },
+  qualification: { type: String, default: '' },
+  hospitalName: { type: String, default: '' },
+  address: { type: String, default: '' },
+  phone: { type: String, default: '' },
+  registrationNo: { type: String, default: '' },
+  timing: { type: String, default: '' },
+  logo: { type: String, default: null }
+},
     // Account Status
     isActive: { type: Boolean, default: true },
     lastLogin: { type: Date, default: null },

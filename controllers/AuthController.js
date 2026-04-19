@@ -27,6 +27,8 @@ dotenv.config();
 
 import { createCanvas, loadImage } from 'canvas';
 import BillBook from "../models/BillBook.js";
+import DoctorPrescription from "../models/DoctorPrescription.js";
+import Ireceipt from "../models/Ireceipt.js";
 
 
 
@@ -2157,6 +2159,649 @@ export const getBillBookWithBusinessDetails = async (req, res) => {
       success: false,
       message: 'Error getting billbook',
       error: error.message,
+    });
+  }
+};
+
+
+
+// AuthController.js - Add these functions
+
+// Add/Update Doctor Details
+export const addDoctorDetails = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const {
+      doctorName,
+      qualification,
+      hospitalName,
+      address,
+      phone,
+      registrationNo,
+      timing
+    } = req.body;
+
+    // Get logo file path if uploaded
+    let logoPath = null;
+    if (req.file) {
+      logoPath = `/uploads/doctor-logo/${req.file.filename}`;
+    }
+
+    // Update user's doctor details
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          'doctorDetails.doctorName': doctorName || '',
+          'doctorDetails.qualification': qualification || '',
+          'doctorDetails.hospitalName': hospitalName || '',
+          'doctorDetails.address': address || '',
+          'doctorDetails.phone': phone || '',
+          'doctorDetails.registrationNo': registrationNo || '',
+          'doctorDetails.timing': timing || '',
+          'doctorDetails.logo': logoPath
+        }
+      },
+      { new: true, upsert: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Doctor details updated successfully',
+      data: {
+        doctorDetails: user.doctorDetails
+      }
+    });
+
+  } catch (error) {
+    console.error('Error adding doctor details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error adding doctor details',
+      error: error.message
+    });
+  }
+};
+
+// Get Doctor Details
+export const getDoctorDetails = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    const user = await User.findById(userId).select('doctorDetails');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        doctorDetails: user.doctorDetails || {}
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting doctor details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting doctor details',
+      error: error.message
+    });
+  }
+};
+
+
+
+const overlayDoctorTemplate = async (
+  templateImageUrl,
+  textStyles,
+  logoUrl,
+  logoSettings
+) => {
+  try {
+    const templateBuffer = await fetchAndConvertImage(templateImageUrl);
+    const templateImg = await loadImage(templateBuffer);
+
+    const width = templateImg.width;
+    const height = templateImg.height;
+
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+
+    // ─── DRAW TEMPLATE ───
+    ctx.drawImage(templateImg, 0, 0, width, height);
+
+    // ─────────────────────────────
+    // TEXT OVERLAY (FIXED)
+    // ─────────────────────────────
+    const fields = Object.keys(textStyles);
+
+    for (const field of fields) {
+      const style = textStyles[field];
+
+      if (!style?.text) continue;
+      if (style.show === false) continue;
+
+      const x = Number(style.x) || 0;
+      const y = Number(style.y) || 0;
+
+      const fontSize = style.fontSize || 16;
+      const fontWeight = style.fontWeight || 'normal';
+      const fontFamily = style.fontFamily || 'sans-serif';
+      const color = style.color || '#000';
+
+      ctx.save();
+
+      // ✅ FIX FONT FORMAT
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+      ctx.fillStyle = color;
+
+      // ✅ IMPORTANT FIX
+      ctx.textBaseline = 'top';
+
+      const text = String(style.text);
+
+      console.log(`🖊️ Drawing ${field}: ${text} @ ${x},${y}`);
+
+      // multi-line support (address etc.)
+      const lines = text.split('\n');
+
+      lines.forEach((line, i) => {
+        ctx.fillText(line, x, y + i * (fontSize + 4));
+      });
+
+      ctx.restore();
+    }
+
+    // ─────────────────────────────
+    // LOGO OVERLAY (WORKING)
+    // ─────────────────────────────
+    if (logoUrl && logoSettings?.show !== false) {
+      try {
+        const logoBuffer = await fetchAndConvertImage(logoUrl);
+        const logoImg = await loadImage(logoBuffer);
+
+        const x = logoSettings.x || 0;
+        const y = logoSettings.y || 0;
+        const w = logoSettings.width || 80;
+        const h = logoSettings.height || 80;
+
+        ctx.save();
+
+        if (logoSettings.shape === 'circle') {
+          ctx.beginPath();
+          ctx.arc(x + w / 2, y + h / 2, Math.min(w, h) / 2, 0, Math.PI * 2);
+          ctx.clip();
+        }
+
+        ctx.drawImage(logoImg, x, y, w, h);
+
+        ctx.restore();
+      } catch (e) {
+        console.log('Logo error:', e.message);
+      }
+    }
+
+    // ─── SAVE IMAGE ───
+    const buffer = canvas.toBuffer('image/png');
+    const filename = `doctor-overlay-${Date.now()}.png`;
+
+    const filePath = saveBufferToFile(buffer, filename);
+
+    return filePath;
+
+  } catch (error) {
+    console.error('Overlay engine error:', error);
+    return null;
+  }
+};
+
+export const getDoctorPrescriptionWithDetails = async (req, res) => {
+  try {
+    const { userId, prescriptionId } = req.params;
+
+    if (!userId || !prescriptionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID and Prescription ID are required',
+      });
+    }
+
+    // ─────────────────────────────
+    // 1. USER (Doctor Details)
+    // ─────────────────────────────
+    const user = await User.findById(userId).select('doctorDetails');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const doctorDetails = user.doctorDetails || {};
+
+    // ─────────────────────────────
+    // 2. PRESCRIPTION TEMPLATE
+    // ─────────────────────────────
+    const prescription = await DoctorPrescription.findById(prescriptionId);
+    if (!prescription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor prescription not found'
+      });
+    }
+
+    const templateStyles = prescription.textStyles || {};
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    // ─────────────────────────────
+    // 3. CHECK DATA
+    // ─────────────────────────────
+    const hasDoctorDetails =
+      doctorDetails.doctorName ||
+      doctorDetails.hospitalName ||
+      doctorDetails.phone;
+
+    if (!hasDoctorDetails) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please add doctor details first',
+        requiresDoctorDetails: true
+      });
+    }
+
+    // ─────────────────────────────
+    // 4. TEMPLATE IMAGE URL
+    // ─────────────────────────────
+    const templateImageUrl = prescription.templateImage?.startsWith('http')
+      ? prescription.templateImage
+      : `${baseUrl}${prescription.templateImage}`;
+
+    // ─────────────────────────────
+    // 5. LOGO URL
+    // ─────────────────────────────
+    let logoUrl = '';
+    if (doctorDetails.logo) {
+      logoUrl = doctorDetails.logo.startsWith('http')
+        ? doctorDetails.logo
+        : `${baseUrl}${doctorDetails.logo}`;
+    }
+
+    // ─────────────────────────────
+    // 6. TEXT FIELDS
+    // ─────────────────────────────
+    const fields = [
+      'doctorName',
+      'qualification',
+      'hospitalName',
+      'address',
+      'phone',
+      'registrationNo',
+      'timing'
+    ];
+
+    const overlayTextStyles = {};
+
+    fields.forEach((field) => {
+      const tmpl = templateStyles[field] || {};
+      const text = doctorDetails[field] || '';
+
+      overlayTextStyles[field] = {
+        fontSize: tmpl.fontSize || 16,
+        fontWeight: tmpl.fontWeight || 'normal',
+        fontFamily: tmpl.fontFamily || 'sans-serif',
+        color: tmpl.color || '#000',
+        italic: tmpl.italic || false,
+        underline: tmpl.underline || false,
+        show: tmpl.show !== false,
+        x: Number(tmpl.x) || 0,
+        y: Number(tmpl.y) || 0,
+        text
+      };
+    });
+
+    // ─────────────────────────────
+    // 7. GENERATE OVERLAY IMAGE
+    // ─────────────────────────────
+    const overlaidImagePath = await overlayDoctorTemplate(
+      templateImageUrl,
+      overlayTextStyles,
+      logoUrl,
+      prescription.logoSettings || {}
+    );
+
+    const overlaidImageUrl = overlaidImagePath
+      ? `${baseUrl}${overlaidImagePath}`
+      : '';
+
+    return res.status(200).json({
+      success: true,
+      message: 'Doctor prescription generated successfully',
+      data: {
+        overlaidImage: overlaidImageUrl,
+        prescriptionId: prescription._id,
+        userId: user._id,
+        doctorDetails
+      }
+    });
+
+  } catch (error) {
+    console.error('Overlay error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error generating prescription',
+      error: error.message
+    });
+  }
+};
+
+
+
+export const addUserReceiptDetails = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const {
+      companyName,
+      companyAddress,
+      companyEmail,
+      companyPhone,
+      receiptTitle,
+      receiptNumber,
+      receiptDate,
+      message
+    } = req.body;
+
+    // ─────────────────────────────
+    // LOGO FILE (OPTIONAL)
+    // ─────────────────────────────
+    let logoPath = null;
+    if (req.file) {
+      logoPath = `/uploads/receipt-logo/${req.file.filename}`;
+    }
+
+    // ─────────────────────────────
+    // UPDATE USER (SIMPLE DOCTOR STYLE)
+    // ─────────────────────────────
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          'receiptDetails.companyName': companyName || '',
+          'receiptDetails.companyAddress': companyAddress || '',
+          'receiptDetails.companyEmail': companyEmail || '',
+          'receiptDetails.companyPhone': companyPhone || '',
+          'receiptDetails.receiptTitle': receiptTitle || '',
+          'receiptDetails.receiptNumber': receiptNumber || '',
+          'receiptDetails.receiptDate': receiptDate || null,
+          'receiptDetails.message': message || '',
+          'receiptDetails.logo': logoPath
+        }
+      },
+      { new: true, upsert: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Receipt details updated successfully',
+      data: user.receiptDetails
+    });
+
+  } catch (error) {
+    console.error('Error adding receipt details:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error adding receipt details',
+      error: error.message
+    });
+  }
+};
+
+
+
+const overlayReceiptTemplate = async (
+  templateImageUrl,
+  textStyles,
+  logoUrl,
+  logoSettings
+) => {
+  try {
+    const templateBuffer = await fetchAndConvertImage(templateImageUrl);
+    const templateImg = await loadImage(templateBuffer);
+
+    const width = templateImg.width;
+    const height = templateImg.height;
+
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+
+    // ─── DRAW TEMPLATE ───
+    ctx.drawImage(templateImg, 0, 0, width, height);
+
+    // ─────────────────────────────
+    // TEXT OVERLAY
+    // ─────────────────────────────
+    const fields = Object.keys(textStyles);
+
+    for (const field of fields) {
+      const style = textStyles[field];
+
+      if (!style?.text) continue;
+      if (style.show === false) continue;
+
+      const x = Number(style.x) || 0;
+      const y = Number(style.y) || 0;
+
+      const fontSize = style.fontSize || 16;
+      const fontWeight = style.fontWeight || 'normal';
+      const fontFamily = style.fontFamily || 'sans-serif';
+      const color = style.color || '#000';
+
+      ctx.save();
+      ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+      ctx.fillStyle = color;
+      ctx.textBaseline = 'top';
+
+      const text = String(style.text);
+
+      const lines = text.split('\n');
+
+      lines.forEach((line, i) => {
+        ctx.fillText(line, x, y + i * (fontSize + 4));
+      });
+
+      ctx.restore();
+    }
+
+    // ─────────────────────────────
+    // LOGO OVERLAY
+    // ─────────────────────────────
+    if (logoUrl && logoSettings?.show !== false) {
+      try {
+        const logoBuffer = await fetchAndConvertImage(logoUrl);
+        const logoImg = await loadImage(logoBuffer);
+
+        const x = logoSettings.x || 0;
+        const y = logoSettings.y || 0;
+        const w = logoSettings.width || 80;
+        const h = logoSettings.height || 80;
+
+        ctx.save();
+
+        if (logoSettings.shape === 'circle') {
+          ctx.beginPath();
+          ctx.arc(x + w / 2, y + h / 2, Math.min(w, h) / 2, 0, Math.PI * 2);
+          ctx.clip();
+        }
+
+        ctx.drawImage(logoImg, x, y, w, h);
+
+        ctx.restore();
+      } catch (e) {
+        console.log('Logo error:', e.message);
+      }
+    }
+
+    // ─── SAVE IMAGE ───
+    const buffer = canvas.toBuffer('image/png');
+    const filename = `receipt-overlay-${Date.now()}.png`;
+
+    const filePath = saveBufferToFile(buffer, filename);
+
+    return filePath;
+
+  } catch (error) {
+    console.error('Receipt overlay error:', error);
+    return null;
+  }
+};
+
+
+export const getSingleReceiptWithDetails = async (req, res) => {
+  try {
+    const { userId, receiptId } = req.params;
+
+    if (!userId || !receiptId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID and Receipt ID are required'
+      });
+    }
+
+    // ─────────────────────────────
+    // 1. USER DATA
+    // ─────────────────────────────
+    const user = await User.findById(userId).select('receiptDetails');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const receiptDetails = user.receiptDetails || {};
+
+    // ─────────────────────────────
+    // 2. RECEIPT TEMPLATE
+    // ─────────────────────────────
+    const receipt = await Ireceipt.findById(receiptId);
+    if (!receipt) {
+      return res.status(404).json({
+        success: false,
+        message: 'Receipt not found'
+      });
+    }
+
+    const templateStyles = receipt.textStyles || {};
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    // ─────────────────────────────
+    // 3. TEMPLATE IMAGE URL
+    // ─────────────────────────────
+    const templateImageUrl = receipt.templateImage?.startsWith('http')
+      ? receipt.templateImage
+      : `${baseUrl}${receipt.templateImage}`;
+
+    // ─────────────────────────────
+    // 4. LOGO URL
+    // ─────────────────────────────
+    let logoUrl = '';
+    if (receiptDetails.logo) {
+      logoUrl = receiptDetails.logo.startsWith('http')
+        ? receiptDetails.logo
+        : `${baseUrl}${receiptDetails.logo}`;
+    }
+
+    // ─────────────────────────────
+    // 5. FIELDS MAP (IMPORTANT)
+    // ─────────────────────────────
+    const fields = [
+      'companyName',
+      'companyAddress',
+      'companyEmail',
+      'companyPhone',
+      'receiptTitle',
+      'receiptNumber',
+      'receiptDate',
+      'message'
+    ];
+
+    const overlayTextStyles = {};
+
+    fields.forEach((field) => {
+      const tmpl = templateStyles[field] || {};
+      const text = receiptDetails[field] || '';
+
+      overlayTextStyles[field] = {
+        fontSize: tmpl.fontSize || 16,
+        fontWeight: tmpl.fontWeight || 'normal',
+        fontFamily: tmpl.fontFamily || 'sans-serif',
+        color: tmpl.color || '#000',
+        italic: tmpl.italic || false,
+        underline: tmpl.underline || false,
+        show: tmpl.show !== false,
+        x: Number(tmpl.x) || 0,
+        y: Number(tmpl.y) || 0,
+        text
+      };
+    });
+
+    // ─────────────────────────────
+    // 6. GENERATE OVERLAY
+    // ─────────────────────────────
+    const overlaidImagePath = await overlayReceiptTemplate(
+      templateImageUrl,
+      overlayTextStyles,
+      logoUrl,
+      receipt.logoSettings || {}
+    );
+
+    const overlaidImageUrl = overlaidImagePath
+      ? `${baseUrl}${overlaidImagePath}`
+      : '';
+
+    return res.status(200).json({
+      success: true,
+      message: 'Receipt generated successfully',
+      data: {
+        overlaidImage: overlaidImageUrl,
+        receiptId: receipt._id,
+        userId: user._id,
+        receiptDetails
+      }
+    });
+
+  } catch (error) {
+    console.error('Receipt overlay error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error generating receipt',
+      error: error.message
     });
   }
 };

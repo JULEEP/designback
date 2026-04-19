@@ -129,3 +129,21 @@ export const uploadIreceiptFiles = uploadIreceipt.fields([
   { name: 'logo', maxCount: 1 },
   { name: 'previewImage', maxCount: 1 }
 ]);
+
+
+
+// Doctor logo uploader
+export const uploadDoctorLogo = createUploader({
+  destination: "uploads/doctor-logo/",
+  allowedTypes: /jpeg|jpg|png|gif|webp/,
+  maxSize: 5 * 1024 * 1024,
+  prefix: "doctor"
+});
+
+
+export const uploadReceiptLogo = createUploader({
+  destination: "uploads/receipt-logo/",
+  allowedTypes: /jpeg|jpg|png|gif|webp/,
+  maxSize: 5 * 1024 * 1024,
+  prefix: "receipt"
+});

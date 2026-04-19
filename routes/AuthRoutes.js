@@ -23,9 +23,14 @@ import {
   confirmDeleteAccount,
   getUserById,
   addBusinessDetails,
-  getBillBookWithBusinessDetails
+  getBillBookWithBusinessDetails,
+  getDoctorDetails,
+  addDoctorDetails,
+  getDoctorPrescriptionWithDetails,
+  addUserReceiptDetails,
+  getSingleReceiptWithDetails
 } from "../controllers/AuthController.js";
-import { uploadBusinessLogo } from "../config/uploadUtils.js";
+import { uploadBusinessLogo, uploadDoctorLogo, uploadReceiptLogo } from "../config/uploadUtils.js";
 
 
 
@@ -73,6 +78,27 @@ router.post(
 
 router.get('/getbillbook/:userId/:billbookId', getBillBookWithBusinessDetails);
 
+
+
+router.post(
+  '/doctor-details/:userId',
+  uploadDoctorLogo.single('logo'),
+  addDoctorDetails
+);
+
+// Simple route - bilkul business-details jaisa
+router.get('/doctor-details/:userId', getDoctorDetails);
+
+router.get('/singleprescription/:userId/:prescriptionId', getDoctorPrescriptionWithDetails);
+
+router.post(
+  "/receipt-details/:userId",
+  uploadReceiptLogo.single("logo"),
+  addUserReceiptDetails
+);
+
+
+router.get("/singlereceipt/:userId/:receiptId", getSingleReceiptWithDetails);
 
 
 
